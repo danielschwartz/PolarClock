@@ -1,0 +1,211 @@
+<html>
+  <head>
+    <title>PolarClock</title>
+    <script type="text/javascript" src="protovis-3.2.js"></script>
+    <style type="text/css">
+      body {
+        background: #000;
+        width: 640px;
+        height: 960px;
+      }
+      #fig {
+		position:absolute;
+		top:60px;
+		left:-36px;
+      }
+	
+	.date span{
+		display:block;
+		position:absolute;
+		font-family: Helvetica;
+		font-weight:200;
+		text-align: center;
+		letter-spacing: 0.00em;
+		text-shadow: 0px 0px 9px #010101;	
+		text-transform: uppercase;
+	}
+	
+	#dayWeek{
+		color:rgb(88,14,100);	
+		font-size:20px;
+		top:46px;
+		left:203px;
+		font-weight:bold;
+		text-align:right;
+		
+	}
+	
+	#dayMonth{
+		color:rgb(54,79,122);
+		font-size:49px;
+		top:39px;
+		left:146px;
+	}
+	
+	#month{
+		color:rgb(172,2,102);
+		font-size:37px;
+		top:13px;
+		left:149px;
+	}
+	
+	#year{
+		color:rgb(59,58,133);
+		font-size:25px;
+		top:60px;
+		left:203px;
+	}
+	
+	#time{
+		color: rgb(71,174,214);
+		font-size:57px;
+		top:18px;
+		left:5px;
+	}
+    </style>
+  </head>
+  <body>
+	<div class="date">
+		<span id="dayWeek"></span>
+		<span id="dayMonth"></span>
+		<span id="time"></span>
+		<span id="year"></span>
+		<span id="month"></span>
+	</div>
+	<div id="center"><div id="fig">
+		
+	<script type="text/javascript">
+		//get elements
+		
+		var regTime = true;
+		
+		setInterval(setTime, 60);
+		
+		
+		function setTime(){
+			var spanWeek = document.getElementById("dayWeek"),
+				spanDay = document.getElementById("dayMonth"),
+				time = document.getElementById("time"),
+				year = document.getElementById("year"),
+				month = document.getElementById("month"),
+				days = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"],
+				months = ["January","February","March","April","May","June","July","August","September","October","November","December"],
+				now = new Date(),
+				hours = seperateTime(now.getHours().toString(), "hours"),
+				minutes = seperateTime(now.getMinutes().toString());
+				
+				
+				spanWeek.innerText = days[now.getDay()];
+				spanDay.innerText = now.getDate();
+				time.innerText = hours[0] + "" + hours[1] + ":" + minutes[0] + "" + minutes[1];
+				month .innerText = months[now.getMonth()];
+				year.innerText = now.getFullYear();
+				
+				/*
+				time.innerText = d.getHours() + ":" + d.getMinutes();
+				month.innerText = months[d.getMonth()];
+				*/
+				
+		}
+		
+		function seperateTime(time, type){
+			var t1, t2, array=[];
+
+			switch(time.length){
+				case 1:
+					if(parseInt(time) == 0 && type == "hours" && regTime){
+						t1 = 1;
+						t2 = 2;
+					}
+					else{
+						t1 = 0;
+						t2 = time;
+					}
+					break;
+				case 2:
+					if(type != null && type == "hours" && parseInt(time) > 12 && regTime){
+						var nonMilitary = (parseInt(time) - 12).toString();
+						//console.log(nonMilitary);
+						if(nonMilitary.length == 1){
+							t1 = 0;
+							t2 = nonMilitary;
+						}
+						else{
+							t1 = nonMilitary.substring(0,1);
+							t2 = nonMilitary.substring(1,2);
+						}
+					}
+					else{
+						t1 = time.substring(0,1);
+						t2 = time.substring(1,2);
+					}
+					break;
+			}
+
+			array.push(t1,t2);
+
+			return array
+		}
+			
+	</script>
+    <script type="text/javascript+protovis">
+      var fsec = pv.Format.date("%Ss"),
+          fmin = pv.Format.date("%Mm"),
+          fhou = pv.Format.date("%Hh"),
+          fwee = pv.Format.date("%a"),
+          fdat = pv.Format.date("%dd"),
+          fmon = pv.Format.date("%b"),
+          radius = 390 / 2;
+
+      /* Generate the fields for the given date. */
+      function fields() {
+        var d = new Date();
+
+        function days() {
+          return 32 - new Date(d.getYear(), d.getMonth(), 32).getDate();
+        }
+
+        var second = (d.getSeconds() + d.getMilliseconds() / 1000) / 60;
+        var minute = (d.getMinutes() + second) / 60;
+        var hour = (d.getHours() + minute) / 24;
+        var weekday = (d.getDay() + hour) / 7;
+        var date = (d.getDate() - 1 + hour) / days();
+        var month = (d.getMonth() + date) / 12;
+
+        return [
+            { value: second,  index: .7, text: fsec(d) },
+            { value: minute,  index: .6, text: fmin(d) },
+            { value: hour,    index: .5, text: fhou(d) },
+            { value: weekday, index: .3, text: fwee(d) },
+            { value: date,    index: .2, text: fdat(d) },
+            { value: month,   index: .1, text: fmon(d) },
+          ];
+      }
+
+      var vis = new pv.Panel()
+          .width(radius * 2)
+          .height(radius * 2);
+
+      vis.add(pv.Wedge)
+          .data(fields)
+          .left(radius)
+          .bottom(radius)
+          .innerRadius(function(d) radius * d.index)
+          .outerRadius(function(d) radius * (d.index + .10))
+          .startAngle(-Math.PI / 2)
+          .angle(function(d) 2 * Math.PI * d.value)
+          .fillStyle(function(d) "hsl(" + (360 * d.value - 180) + ", 100%, 50%)")
+          .lineWidth(1)
+          .strokeStyle("#000")
+        .anchor("end").add(pv.Label)
+          .font("bold 8px sans-serif")
+          .textStyle("#000")
+          .textMargin(7)
+          .text(function(d) d.text);
+
+      setInterval(function() vis.render(), 60);
+
+    </script>
+  </div></div>
+  </body>
+</html>
